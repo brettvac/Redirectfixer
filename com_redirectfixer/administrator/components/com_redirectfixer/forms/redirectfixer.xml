@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fieldset name="redirectfixer">
+        <field
+            name="articles"
+            type="subform"
+            label="COM_REDIRECTFIXER_AFFECTED_ARTICLES"
+            multiple="true"
+            min="0"
+            max="1000">
+            <form>
+                <field
+                    name="id"
+                    type="number"
+                    label="COM_REDIRECTFIXER_ARTICLE_ID"
+                    required="true"
+                    filter="integer"
+                    min="1"
+                />
+                <field
+                    name="title"
+                    type="text"
+                    label="COM_REDIRECTFIXER_ARTICLE_TITLE"
+                    required="true"
+                    filter="string"
+                />
+                <field
+                    name="urls"
+                    type="subform"
+                    label="COM_REDIRECTFIXER_URLS"
+                    multiple="true"
+                    min="1"
+                    max="100">
+                    <form>
+                        <field
+                            name="old_url"
+                            type="text"
+                            label="COM_REDIRECTFIXER_OLD_URL"
+                            description="COM_REDIRECTFIXER_OLD_URL_DESC"
+                            required="true"
+                            filter="raw"
+                        />
+                        <field
+                            name="new_url"
+                            type="text"
+                            label="COM_REDIRECTFIXER_NEW_URL"
+                            description="COM_REDIRECTFIXER_NEW_URL_DESC"
+                            required="true"
+                            filter="raw"
+                        />
+                    </form>
+                </field>
+            </form>
+        </field>
+    </fieldset>
+</form>

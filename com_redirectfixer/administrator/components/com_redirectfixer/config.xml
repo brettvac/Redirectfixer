@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+    <fieldset name="general" label="COM_REDIRECTFIXER_CONFIG_GENERAL_SETTINGS">
+        <field name="query_strings"       type="radio"       layout="joomla.form.field.radio.switcher"       label="COM_REDIRECTFIXER_CONFIG_QUERY_STRINGS_LABEL"
+       description="COM_REDIRECTFIXER_CONFIG_QUERY_STRINGS_DESCRIPTION"       class="btn-group"   default="ignore">
+         <option value="check">COM_REDIRECTFIXER_CONFIG_QUERY_STRINGS_CHECK</option>
+        <option value="ignore">COM_REDIRECTFIXER_CONFIG_QUERY_STRINGS_IGNORE</option>
+      </field>
+    </fieldset>
+    <fieldset name="permissions" label="JCONFIG_PERMISSIONS_LABEL" description="JCONFIG_PERMISSIONS_DESC">
+    </fieldset>
+</config>
