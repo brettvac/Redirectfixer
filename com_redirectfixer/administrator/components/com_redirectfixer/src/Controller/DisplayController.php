@@ -14,20 +14,19 @@ use Joomla\CMS\Factory;
 
 class DisplayController extends BaseController
 {
+    // Specify the default view to load when no view is explicitly requested in the URL
     protected $default_view = 'redirectfixer';
 
     public function display($cachable = false, $urlparams = array())
     {
-        $app = Factory::getApplication();
         $viewName = $this->input->get('view', $this->default_view);
         $viewLayout = $this->input->get('layout', 'default');
+        
         $viewType = Factory::getDocument()->getType();
 
-        $view = $this->getView($viewName, $viewType);
-        //$view = $this->getView($viewName, $viewType, 'Administrator');
+        $view = $this->getView($viewName, $viewType, 'Administrator');
         
-        $model = $this->getModel('Redirectfixer');
-        //$model = $this->getModel('Redirectfixer', 'Administrator');
+        $model = $this->getModel('Redirectfixer', 'Administrator');
 
         // the View needs a pointer to the Model
         $view->setModel($model, true);
@@ -35,6 +34,5 @@ class DisplayController extends BaseController
         $view->setLayout($viewLayout);
         $view->display();
 
-        return true;
     }
 }
