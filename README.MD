@@ -1,5 +1,4 @@
 # Redirect Fixer Component
-![Redirect Fixer Component Logo](images/logo.jpg)
 A Joomla! component for automatically scanning and updating internal article links based on your site's defined redirects.
 
 Are you struggling with outdated or broken internal links in your Joomla! articles after migrating content or setting up redirects? The Redirect Fixer component scans your article content, identifies URLs that match your site's published redirects, and allows you to easily update them to the new, correct destinations, ensuring your content always points to the right place.
@@ -26,7 +25,6 @@ This component works with Joomla! versions **4.0 or later** and requires **PHP 7
 
 **Q: Can it fix URLs in modules, custom HTML, or content fields outside of main articles?**
 **A:** Currently, it's designed to scan and update URLs exclusively within the `introtext` and `fulltext` fields of Joomla! articles (`#__content` table). Other content areas are not covered.
-
 
 **Q: This component is awesome! Can I send a donation?**  
 **A:** Sure! Send your cryptonation to the following wallets:
