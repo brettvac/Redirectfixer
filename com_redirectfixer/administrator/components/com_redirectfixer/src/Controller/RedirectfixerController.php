@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.0
+ * @version    1.1
  * @license    GNU General Public License version 2
  */
 
@@ -9,7 +9,7 @@ namespace Naftee\Component\Redirectfixer\Administrator\Controller;
 
 \defined("_JEXEC") or die();
 
-use Joomla\CMS\MVC\Controller\AdminController;
+use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
@@ -18,7 +18,7 @@ use Joomla\CMS\Router\Route;
 /**
  * Controller for the Redirectfixer component.
  */
-class RedirectfixerController extends AdminController
+class RedirectfixerController extends BaseController
 {
     /**
      * Scans articles for URLs matching redirects.
@@ -37,11 +37,9 @@ class RedirectfixerController extends AdminController
             return;
         }
 
-        $model = $this->getModel("Redirectfixer", "Administrator");
-
         if (!$this->isRedirectPluginEnabled()) {
             $this->app->enqueueMessage(
-                Text::_("COM_REDIRECTFIXER_ERROR_REDIRECT_PLUGIN_DISABLED"),
+                Text::_("COM_REDIRECTFIXER_REDIRECT_PLUGIN_DISABLED"),
                 "error",
             );
             $this->setRedirect(
@@ -67,7 +65,9 @@ class RedirectfixerController extends AdminController
             return;
         }
 
+        $model = $this->getModel("Redirectfixer", "Administrator");
         $articles = $model->getAffectedArticles();
+        
         $this->app->setUserState("com_redirectfixer.articles", $articles);
 
         if (empty($articles)) {
@@ -105,7 +105,7 @@ class RedirectfixerController extends AdminController
         // Check if the redirect plugin is enabled
         if (!$this->isRedirectPluginEnabled()) {
             $this->app->enqueueMessage(
-                Text::_("COM_REDIRECTFIXER_ERROR_REDIRECT_PLUGIN_DISABLED"),
+                Text::_("COM_REDIRECTFIXER_REDIRECT_PLUGIN_DISABLED"),
                 "error",
             );
             $this->setRedirect(
@@ -141,7 +141,7 @@ class RedirectfixerController extends AdminController
         // Validate articles data
         if (empty($articles)) {
             $this->app->enqueueMessage(
-                Text::_("COM_REDIRECTFIXER_ERROR_NO_ARTICLES_SUBMITTED"),
+                Text::_("COM_REDIRECTFIXER_NO_ARTICLES_SUBMITTED"),
                 "error",
             );
             $this->setRedirect(
@@ -154,23 +154,17 @@ class RedirectfixerController extends AdminController
         }
 
         // Prepare data for the model
-        $jformData = ["articles" => []];
+        $jformData = ["redirectfixer" => ["articles" => []]];
         foreach ($articles as $index => $article) {
             if (
                 !isset($article["id"], $article["urls"]) ||
                 !is_array($article["urls"]) ||
                 empty($article["urls"])
             ) {
-                $this->app->enqueueMessage(
-                    Text::sprintf(
-                        "COM_REDIRECTFIXER_ERROR_INVALID_ARTICLE_DATA",
-                        $index,
-                    ),
-                    "warning",
-                );
+                $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_INVALID_ARTICLE_DATA', $article['id']),'warning');
                 continue;
             }
-            $jformData["articles"][$index] = [
+            $jformData["redirectfixer"]["articles"][$index] = [
                 "id" => (int) $article["id"],
                 "urls" => array_values(
                     array_filter($article["urls"], function ($url) {
@@ -181,9 +175,9 @@ class RedirectfixerController extends AdminController
             ];
         }
 
-        if (empty($jformData["articles"])) {
+        if (empty($jformData["redirectfixer"]["articles"])) {
             $this->app->enqueueMessage(
-                Text::_("COM_REDIRECTFIXER_ERROR_NO_VALID_ARTICLES"),
+                Text::_("COM_REDIRECTFIXER_NO_VALID_ARTICLES"),
                 "error",
             );
             $this->setRedirect(
@@ -196,8 +190,7 @@ class RedirectfixerController extends AdminController
         }
 
         // Get model for article update logic
-        $model = $this->getModel("Redirectfixer");
-        //$model = $this->getModel('Redirectfixer', 'Administrator');
+        $model = $this->getModel("Redirectfixer", "Administrator");
 
         $updated = 0;
         $updateAll = $this->input->getBool("update_all", false);
@@ -208,17 +201,17 @@ class RedirectfixerController extends AdminController
             $updated = $model->updateAllArticles($jformData);
         } elseif ($updateSingleId > 0) {
             // Select only the article from the submitted form data that matches the Id
-            $singleArticleData = ["articles" => []];
-            foreach ($jformData["articles"] as $index => $article) {
+            $singleArticleData = ["redirectfixer" => ["articles" => []]];
+            foreach ($jformData["redirectfixer"]["articles"] as $index => $article) {
                 if ($article["id"] === $updateSingleId) {
-                    $singleArticleData["articles"][$index] = $article;
+                    $singleArticleData["redirectfixer"]["articles"][$index] = $article;
                 }
             }
 
-            if (empty($singleArticleData["articles"])) {
+            if (empty($singleArticleData["redirectfixer"]["articles"])) {
                 $this->app->enqueueMessage(
                     Text::sprintf(
-                        "COM_REDIRECTFIXER_ERROR_ARTICLE_NOT_FOUND",
+                        "COM_REDIRECTFIXER_ARTICLE_NOT_FOUND",
                         $updateSingleId,
                     ),
                     "error",
@@ -239,7 +232,7 @@ class RedirectfixerController extends AdminController
             );
         } else {
             $this->app->enqueueMessage(
-                Text::_("COM_REDIRECTFIXER_ERROR_INVALID_FORM_VALUES"),
+                Text::_("COM_REDIRECTFIXER_INVALID_FORM_VALUES"),
                 "error",
             );
             $this->setRedirect(

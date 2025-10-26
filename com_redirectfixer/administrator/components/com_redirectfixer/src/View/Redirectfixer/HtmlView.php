@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.0
+ * @version    1.1
  * @license    GNU General Public License version 2
  */
 
@@ -68,7 +68,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Adds the toolbar with scanscan action.
+     * Adds the toolbar with scan action.
      *
      * @return  void
      */

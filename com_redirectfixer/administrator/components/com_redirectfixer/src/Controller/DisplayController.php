@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.0
+ * @version    1.1
  * @license    GNU General Public License version 2
  */
 
@@ -19,19 +19,20 @@ class DisplayController extends BaseController
 
     public function display($cachable = false, $urlparams = array())
     {
-        $viewName = $this->input->get('view', $this->default_view);
+        $viewName = $this->input->get('view', $this->default_view);        
+        $viewType = Factory::getDocument()->getType();
+        
         $viewLayout = $this->input->get('layout', 'default');
         
-        $viewType = Factory::getDocument()->getType();
-
-        $view = $this->getView($viewName, $viewType, 'Administrator');
-        
         $model = $this->getModel('Redirectfixer', 'Administrator');
+        
+        $view = $this->getView($viewName, $viewType, 'Administrator');
 
         // the View needs a pointer to the Model
         $view->setModel($model, true);
         
         $view->setLayout($viewLayout);
+        
         $view->display();
 
     }

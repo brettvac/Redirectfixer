@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.0
+ * @version    1.1
  * @license    GNU General Public License version 2
  */
 
@@ -32,7 +32,7 @@ foreach ($messages as $message) {
     <h2><?php echo Text::_('COM_REDIRECTFIXER_AFFECTED_ARTICLES'); ?></h2>
     
     <?php if (empty($this->items) && !$hasErrors) : ?>
-        <p><?php echo Text::_('COM_REDIRECTFIXER_NO_ARTICLES'); echo($hasErrors); ?></p>
+        <p><?php echo Text::_('COM_REDIRECTFIXER_NO_ARTICLES'); ?></p>
     <?php else : ?>
         <?php
         // Group captured redirects by article ID

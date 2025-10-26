@@ -1,6 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
+ * @version    1.1
  * @license    GNU General Public License version 2
  */
 
