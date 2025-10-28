@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.1
+ * @version    1.2
  * @license    GNU General Public License version 2
  */
 
@@ -27,7 +27,6 @@ foreach ($messages as $message) {
 }
 
 ?>
-
 <form action="<?php echo Route::_('index.php?option=com_redirectfixer'); ?>" method="post" name="adminForm" id="adminForm">
     <h2><?php echo Text::_('COM_REDIRECTFIXER_AFFECTED_ARTICLES'); ?></h2>
     

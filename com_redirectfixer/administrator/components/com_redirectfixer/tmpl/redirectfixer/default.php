@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.1
+ * @version    1.2
  * @license    GNU General Public License version 2
  */
 
@@ -12,7 +12,6 @@ use Joomla\CMS\Router\Route;
 use Joomla\CMS\Language\Text;
 
 ?>
-
 <div class="redirectfixer-container">
     <div class="row">
         <div class="col-lg-12">

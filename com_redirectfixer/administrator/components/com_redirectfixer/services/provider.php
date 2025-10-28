@@ -1,5 +1,10 @@
 <?php
-defined('_JEXEC') or die;
+/**
+ * @package    Redirectfixer Component
+ * @license    GNU General Public License version 2
+ */
+
+\defined('_JEXEC') or die;
 
 use Joomla\CMS\Extension\ComponentInterface;
 use Joomla\CMS\Extension\MVCComponent;

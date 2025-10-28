@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.1
+ * @version    1.2
  * @license    GNU General Public License version 2
  */
 
@@ -14,7 +14,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
-use Joomla\CMS\Filesystem\Path;
+use Joomla\Filesystem\Path;
 use Joomla\CMS\Table\Table;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\Database\ParameterType;
@@ -278,7 +278,7 @@ class RedirectfixerModel extends AdminModel
             return count($updatedArticles);
         } catch (\Exception $e) {
             $this->db->transactionRollback();
-            $this->app->enqueueMessage(Text::sprintf('JLIB_DATABASE_ERROR_FUNCTION_FAILED', $e->getMessage()), 'error');
+            $this->app->enqueueMessage(Text::sprintf('JLIB_APPLICATION_ERROR_SAVE_FAILED', $e->getMessage()), 'error');
             $this->app->setUserState('com_redirectfixer.articles', $allMatches);
             return 0; // No articles updated
         }
@@ -373,7 +373,7 @@ class RedirectfixerModel extends AdminModel
                 $this->app->setUserState('com_redirectfixer.articles', $allMatches);
             } catch (\Exception $e) {
                 $this->db->transactionRollback();
-                $this->app->enqueueMessage(Text::sprintf('JLIB_DATABASE_ERROR_FUNCTION_FAILED', $e->getMessage()), 'error');
+                $this->app->enqueueMessage(Text::sprintf('JLIB_APPLICATION_ERROR_SAVE_FAILED', $e->getMessage()), 'error');
                 $this->app->setUserState('com_redirectfixer.articles', $allMatches);
                 return 0; // No articles updated on rollback
             }
