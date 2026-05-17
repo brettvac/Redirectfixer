@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.2
+ * @version    1.3
  * @license    GNU General Public License version 2
  */
 
@@ -65,18 +65,35 @@ class RedirectfixerController extends BaseController
             return;
         }
 
-        $model = $this->getModel("Redirectfixer", "Administrator");
+        $model = $this->getModel('Redirectfixer');
         $articles = $model->getAffectedArticles();
+		
+		// Fetch and display model errors ---
+        $errors = $model->getErrors();
+        if (!empty($errors)) {
+            foreach ($errors as $error) {
+                $this->app->enqueueMessage($error instanceof \Exception ? $error->getMessage() : $error, 'error');
+            }
+        }
         
-        $this->app->setUserState("com_redirectfixer.articles", $articles);
-
         if (empty($articles)) {
             $this->app->enqueueMessage(
-                Text::_("COM_REDIRECTFIXER_NO_ARTICLES"),
-                "warning",
+                Text::_('COM_REDIRECTFIXER_NO_ARTICLES'),
+                'warning'
+            );
+        } else {
+            $this->app->enqueueMessage(
+                Text::sprintf(
+                    'COM_REDIRECTFIXER_REDIRECTS_FOUND',
+                    count($articles)
+                ),
+                'message'
             );
         }
-
+        
+        // Set the data in the user state for retrieval by the view file
+        $this->app->setUserState("com_redirectfixer.articles", $articles);
+       
         $this->setRedirect(
             Route::_(
                 "index.php?option=com_redirectfixer&view=RedirectfixerReturn",
@@ -132,50 +149,14 @@ class RedirectfixerController extends BaseController
             return;
         }
 
-        // Retrieve form data
         $jform = $this->input->get("jform", [], "array");
-        $articles = !empty($jform["redirectfixer"]["articles"])
-            ? $jform["redirectfixer"]["articles"]
-            : [];
+       
+        // Get the model for the business logic
+        $model = $this->getModel("Redirectfixer", "Administrator");
+        
+        $validArticles = $model->normalizeArticles($jform);
 
-        // Validate articles data
-        if (empty($articles)) {
-            $this->app->enqueueMessage(
-                Text::_("COM_REDIRECTFIXER_NO_ARTICLES_SUBMITTED"),
-                "error",
-            );
-            $this->setRedirect(
-                Route::_(
-                    "index.php?option=com_redirectfixer&view=Redirectfixer",
-                    false,
-                ),
-            );
-            return;
-        }
-
-        // Prepare data for the model
-        $jformData = ["redirectfixer" => ["articles" => []]];
-        foreach ($articles as $index => $article) {
-            if (
-                !isset($article["id"], $article["urls"]) ||
-                !is_array($article["urls"]) ||
-                empty($article["urls"])
-            ) {
-                $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_INVALID_ARTICLE_DATA', $article['id']),'warning');
-                continue;
-            }
-            $jformData["redirectfixer"]["articles"][$index] = [
-                "id" => (int) $article["id"],
-                "urls" => array_values(
-                    array_filter($article["urls"], function ($url) {
-                        return !empty($url["old_url"]) &&
-                            !empty($url["new_url"]);
-                    }),
-                ),
-            ];
-        }
-
-        if (empty($jformData["redirectfixer"]["articles"])) {
+        if (empty($validArticles)) {
             $this->app->enqueueMessage(
                 Text::_("COM_REDIRECTFIXER_NO_VALID_ARTICLES"),
                 "error",
@@ -189,26 +170,27 @@ class RedirectfixerController extends BaseController
             return;
         }
 
-        // Get model for article update logic
-        $model = $this->getModel("Redirectfixer", "Administrator");
-
         $updated = 0;
         $updateAll = $this->input->getBool("update_all", false);
         $updateSingleId = $this->input->getInt("update_single_id", -1);
 
         if ($updateAll) {
-            // Fix all redirects in the form
-            $updated = $model->updateAllArticles($jformData);
+            // Fix all redirects in the form using the expected structure
+            $updated = $model->updateAllArticles(
+               ["redirectfixer" => ["articles" => $validArticles]]
+            );
         } elseif ($updateSingleId > 0) {
             // Select only the article from the submitted form data that matches the Id
-            $singleArticleData = ["redirectfixer" => ["articles" => []]];
-            foreach ($jformData["redirectfixer"]["articles"] as $index => $article) {
+            $singleArticleData = [];
+
+            foreach ($validArticles as $article) {
                 if ($article["id"] === $updateSingleId) {
-                    $singleArticleData["redirectfixer"]["articles"][$index] = $article;
+                    $singleArticleData[] = $article;
+                    break;
                 }
             }
 
-            if (empty($singleArticleData["redirectfixer"]["articles"])) {
+            if (empty($singleArticleData)) {
                 $this->app->enqueueMessage(
                     Text::sprintf(
                         "COM_REDIRECTFIXER_ARTICLE_NOT_FOUND",
@@ -225,9 +207,9 @@ class RedirectfixerController extends BaseController
                 return;
             }
 
-            // Fix one article
+            // Fix one article using the expected jform structure 
             $updated = $model->updateSingleArticle(
-                $singleArticleData,
+                ["redirectfixer" => ["articles" => $singleArticleData]],
                 $updateSingleId,
             );
         } else {
@@ -244,10 +226,23 @@ class RedirectfixerController extends BaseController
             return;
         }
 
+        // Fetch & display model errors
+        $errors = $model->getErrors();
+        if (!empty($errors)) {
+            foreach ($errors as $error) {
+                if ($error instanceof \Exception) {
+                    $this->app->enqueueMessage($error->getMessage(), 'error');
+                } else {
+                    $this->app->enqueueMessage($error, 'error');
+                }
+            }
+        }
+
         // Display result messages
         if ($updated > 0) {
             $this->app->enqueueMessage(
-                Text::sprintf("COM_REDIRECTFIXER_URL_UPDATED", $updated),
+                Text::sprintf("COM_REDIRECTFIXER_UPDATED", $updated),
+				                'message'
             );
         } else {
             $this->app->enqueueMessage(

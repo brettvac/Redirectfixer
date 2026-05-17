@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.2
+ * @version    1.3
  * @license    GNU General Public License version 2
  */
 
@@ -9,7 +9,7 @@ namespace Naftee\Component\Redirectfixer\Administrator\Model;
 
 \defined('_JEXEC') or die;
 
-use Joomla\CMS\MVC\Model\AdminModel;
+use Joomla\CMS\MVC\Model\FormModel;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
@@ -22,15 +22,8 @@ use Joomla\Database\ParameterType;
 /**
  * Model class for handling redirect URL updates in articles.
  */
-class RedirectfixerModel extends AdminModel
+class RedirectfixerModel extends FormModel
 {
-    /**
-     * Base URI for the site (frontend root).
-     *
-     * @var string
-     */
-    protected $baseUri;
-
     /**
      * Array of articles to be processed for URL updates.
      *
@@ -46,20 +39,6 @@ class RedirectfixerModel extends AdminModel
     protected $db;
 
     /**
-     * Application object.
-     *
-     * @var \Joomla\CMS\Application\CMSApplication
-     */
-    protected $app;
-
-    /**
-     * Component parameters.
-     *
-     * @var \Joomla\Registry\Registry
-     */
-    protected $params;
-
-    /**
      * Constructor to initialize baseUri, db, app, and params.
      *
      * @param    array    $config    Configuration array
@@ -67,10 +46,42 @@ class RedirectfixerModel extends AdminModel
     public function __construct($config = [])
     {
         parent::__construct($config);
-        $this->baseUri = Uri::root();
         $this->db = $this->getDatabase();
-        $this->app = Factory::getApplication();
-        $this->params = ComponentHelper::getParams('com_redirectfixer');
+    }
+    
+    /**
+     * Retrieves articles affected by redirects.
+     *
+     * @return    array    An array of affected articles with their IDs, titles, and redirect URLs
+     */
+    public function getAffectedArticles()
+    {
+        $uri = new Uri(Uri::root());
+
+        // Fetch all article IDs from the content table
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName('id'))
+            ->from($this->db->quoteName('#__content'));
+
+        $this->db->setQuery($query);
+        $articleIds = $this->db->loadColumn();
+
+        if (empty($articleIds)) {
+            $this->setError(Text::_('COM_REDIRECTFIXER_NO_ARTICLES'));
+            return []; // No articles found
+        }
+
+        $results = []; // Array of articles which are redirects that need to be corrected
+
+        // Scan each article for redirect matches
+        foreach ($articleIds as $id) {
+            $matches = $this->scanArticle($id);
+            if (!empty($matches)) {
+                $results = array_merge($results, $matches);
+            }
+        }
+
+        return $results;
     }
 
     /**
@@ -95,12 +106,12 @@ class RedirectfixerModel extends AdminModel
             $this->db->setQuery($query);
             $article = $this->db->loadAssoc();
         } catch (\RuntimeException $e) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_NOT_FOUND', $id), 'error');
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_NOT_FOUND', $id));
             return [];
         }
 
         if (empty($article)) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_EMPTY', $id), 'error');
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_EMPTY', $id));
             return [];
         }
 
@@ -118,7 +129,7 @@ class RedirectfixerModel extends AdminModel
         $redirects = $this->getRedirects();
 
         if (empty($redirects)) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_REDIRECTS_TO_PROCESS', $id), 'warning');
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_NO_REDIRECTS_TO_PROCESS', $id));
             return [];
         }
 
@@ -131,7 +142,7 @@ class RedirectfixerModel extends AdminModel
         }
 
         if (empty($normalizedRedirects)) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_VALID_REDIRECTS', $id), 'warning');
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_NO_VALID_REDIRECTS', $id));
             return [];
         }
 
@@ -157,233 +168,6 @@ class RedirectfixerModel extends AdminModel
     }
 
     /**
-     * Retrieves articles affected by redirects.
-     *
-     * @return    array    An array of affected articles with their IDs, titles, and redirect URLs
-     */
-    public function getAffectedArticles()
-    {
-        $uri = new Uri($this->baseUri);
-
-        // Fetch all article IDs from the content table
-        $query = $this->db->getQuery(true)
-            ->select($this->db->quoteName('id'))
-            ->from($this->db->quoteName('#__content'));
-
-        $this->db->setQuery($query);
-        $articleIds = $this->db->loadColumn();
-
-        if (empty($articleIds)) {
-            $this->app->enqueueMessage(Text::_('COM_REDIRECTFIXER_NO_ARTICLES'), 'warning');
-            return []; // No articles found
-        }
-
-        $results = []; // Array of articles which are redirects that need to be corrected
-
-        // Scan each article for redirect matches
-        foreach ($articleIds as $id) {
-            $matches = $this->scanArticle($id);
-            if (!empty($matches)) {
-                $results = array_merge($results, $matches);
-            }
-        }
-
-        return $results;
-    }
-
-    /**
-    * Updates all articles with new URLs based on form data.
-    *
-    * @param    array    $jformData    The submitted form data containing articles to update
-    * @return    int        Number of articles successfully updated
-    * @throws    \Exception    If a database error occurs during the transaction
-    */
-    public function updateAllArticles($jformData)
-    {
-        $allMatches = [];
-
-        // Extract and validate articles from form data
-        $articles = !empty($jformData['redirectfixer']['articles']) ? $jformData['redirectfixer']['articles'] : [];
-        if (empty($articles)) {
-            $this->app->enqueueMessage(Text::_('COM_REDIRECTFIXER_NO_ARTICLES'), 'warning');
-            return 0;
-        }
-
-        // Process each article
-        try {
-            $this->db->transactionStart();
-            $updatedArticles = [];
-
-            foreach ($articles as $article) {
-                // Validate article ID and URLs
-                if (empty($article['id']) || !isset($article['urls']) || !is_array($article['urls']) || empty($article['urls'])) {
-                    $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_INVALID_ARTICLE_DATA', $article['id'] ?? 'unknown'), 'warning');
-                    continue;
-                }
-
-                $articleId = (int) $article['id'];
-
-                // Prepare form URLs for filtering
-                $formUrls = [];
-                foreach ($article['urls'] as $url) {
-                    if (!empty($url['old_url']) && !empty($url['new_url'])) {
-                        $formUrls[$this->normalizeURL($url['old_url'])] = [
-                            'old_url' => $url['old_url'],
-                            'new_url' => $url['new_url']
-                        ];
-                    }
-                }
-
-                if (empty($formUrls)) {
-                    $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_VALID_URLS', $articleId), 'warning');
-                    continue;
-                }
-
-                // Scan article content for matching URLs
-                $matches = $this->scanArticle($articleId);
-
-                if (empty($matches)) {
-                    $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_FOUND_IN_ARTICLE', $articleId), 'warning');
-                    continue;
-                }
-
-                // Filter matches to include only form-submitted URLs
-                $filteredMatches = [];
-                foreach ($matches as $match) {
-                    $normalizedMatchUrl = $this->normalizeURL($match['old_url']);
-                    if (isset($formUrls[$normalizedMatchUrl])) {
-                        $filteredMatches[] = [
-                            'id' => $match['id'],
-                            'title' => $match['title'],
-                            'old_url' => $match['old_url'],
-                            'new_url' => $formUrls[$normalizedMatchUrl]['new_url']
-                        ];
-                    }
-                }
-
-                if (empty($filteredMatches)) {
-                    $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_MATCHED_FORM', $articleId), 'warning');
-                    continue;
-                }
-
-                // Store matches for user state
-                $allMatches = array_merge($allMatches, $filteredMatches);
-
-                // Update article content
-               $this->updateArticleContent($articleId, $filteredMatches, $updatedArticles);
-            }
-
-            $this->db->transactionCommit();
-            $this->app->setUserState('com_redirectfixer.articles', $allMatches);
-            return count($updatedArticles);
-        } catch (\Exception $e) {
-            $this->db->transactionRollback();
-            $this->app->enqueueMessage(Text::sprintf('JLIB_APPLICATION_ERROR_SAVE_FAILED', $e->getMessage()), 'error');
-            $this->app->setUserState('com_redirectfixer.articles', $allMatches);
-            return 0; // No articles updated
-        }
-    }
-
-    /**
-     * Updates a single article with new URLs based on form data and index.
-     *
-     * @param    array    $jformData    The submitted form data containing    ['articles' => [index => ['id' => int, 'urls' => [['old_url' => string, 'new_url' => string], ...]], ...]]
-     * @param    int        $articleId      The ID of the article to update
-     * @return    int    Number of articles successfully updated (0 or 1)
-     * @throws    \Exception    If a database error occurs during the transaction
-     */
-    public function updateSingleArticle($jformData, $articleId)
-    {
-        // Find the article(s) matching the given article ID
-        $targetArticles = [];
-        foreach ($jformData['redirectfixer']['articles'] as $index => $article) {
-            if (isset($article['id']) && (int) $article['id'] === (int) $articleId) {
-                $targetArticles[$index] = $article;
-            }
-        }
-
-        if (empty($targetArticles)) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_NOT_FOUND', $articleId), 'error');
-            return 0;
-        }
-
-        // Process each matching article
-        $allMatches = [];
-        $updatedArticles = [];
-        foreach ($targetArticles as $article) {
-            if (empty($article['urls']) || !is_array($article['urls'])) {
-                $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_FOR_ARTICLE', $articleId), 'warning');
-                continue;
-            }
-
-            // Prepare form URLs for filtering
-            $formUrls = [];
-            foreach ($article['urls'] as $url) {
-                if (!empty($url['old_url']) && !empty($url['new_url'])) {
-                    $formUrls[$this->normalizeURL($url['old_url'])] = [
-                        'old_url' => $url['old_url'],
-                        'new_url' => $url['new_url']
-                    ];
-                }
-            }
-
-            if (empty($formUrls)) {
-                $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_VALID_URLS', $articleId), 'warning');
-                continue;
-            }
-
-            // Scan article content for matching URLs
-            $matches = $this->scanArticle($articleId);
-
-            if (empty($matches)) {
-                $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_FOUND_IN_ARTICLE', $articleId), 'warning');
-                continue;
-            }
-
-            // Filter matches to include only form-submitted URLs
-            $filteredMatches = [];
-            foreach ($matches as $match) {
-                $normalizedMatchUrl = $this->normalizeURL($match['old_url']);
-                if (isset($formUrls[$normalizedMatchUrl])) {
-                    $filteredMatches[] = [
-                        'id' => $match['id'],
-                        'title' => $match['title'],
-                        'old_url' => $match['old_url'],
-                        'new_url' => $formUrls[$normalizedMatchUrl]['new_url']
-                    ];
-                }
-            }
-
-            if (empty($filteredMatches)) {
-                $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_MATCHED_FORM', $articleId), 'warning');
-                continue;
-            }
-
-            // Store matches for user state
-            $allMatches = array_merge($allMatches, $filteredMatches);
-
-            try {
-                $this->db->transactionStart();
-
-                // Update article content with filtered matches
-                $this->updateArticleContent($articleId, $filteredMatches, $updatedArticles);
-                
-
-                $this->db->transactionCommit();
-                $this->app->setUserState('com_redirectfixer.articles', $allMatches);
-            } catch (\Exception $e) {
-                $this->db->transactionRollback();
-                $this->app->enqueueMessage(Text::sprintf('JLIB_APPLICATION_ERROR_SAVE_FAILED', $e->getMessage()), 'error');
-                $this->app->setUserState('com_redirectfixer.articles', $allMatches);
-                return 0; // No articles updated on rollback
-            }
-        }
-
-        return count($updatedArticles);
-    }
-
-
-    /**
     * Retrieves published redirects from the database
     *
     * @return    array    An array of redirects with ['old_url' => string, 'new_url' => string]
@@ -401,7 +185,7 @@ class RedirectfixerModel extends AdminModel
             $this->db->setQuery($query);
             $redirects = $this->db->loadAssocList();
         } catch (\RuntimeException $e) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_FETCHING_REDIRECTS', $e->getMessage()), 'error');
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_FETCHING_REDIRECTS', $e->getMessage()));
             return [];
         }
 
@@ -415,7 +199,7 @@ class RedirectfixerModel extends AdminModel
             $isAbsolute = preg_match('#^https?://#i', $oldUrl);
 
             // For absolute URLs, ensure they start with the site’s base URI
-            if ($isAbsolute && strpos($oldUrl, $this->baseUri) !== 0) {
+            if ($isAbsolute && strpos($oldUrl, Uri::root()) !== 0) {
                 continue; // Skip external URLs
             }
 
@@ -432,106 +216,7 @@ class RedirectfixerModel extends AdminModel
 
         return $validRedirects;
     }
-
-    /**
-     * Updates the content of a single article by replacing old URLs with new ones.
-     *
-     * @param    int        $articleId        The ID of the article to update
-     * @param    array    $matches         Array of matches containing id, old_url, new_url
-     * @param    array    &$updatedArticles Array to track updated article IDs
-     * @return    bool    True on success, false on failure
-     */
-    protected function updateArticleContent($articleId, $matches, &$updatedArticles)
-    {
-        // Load article content
-        $table = Table::getInstance('Content', 'Joomla\\CMS\\Table\\');
-
-        if (!$table->load($articleId)) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_LOAD_FAILED', $articleId), 'error');
-            return false;
-        }
-
-        // Don't modify articles which are being modified (checked out)
-        if ($table->checked_out > 0) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_UPDATE_FAILED', $articleId), 'error');
-            return false;
-        }
-
-        // Merge intro and main article text
-        $content = $table->introtext . ' ' . $table->fulltext;
-
-        $urls = $this->extractURLsFromText($content);
-
-        if (empty($urls)) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_MATCHED', $articleId), 'warning');
-            return false;
-        }
-
-        $urlMatched = false;
-
-        foreach ($matches as $match) {
-            // Validate article data
-            $data = [
-                'id' => (int) $match['id'],
-                'old_url' => trim($match['old_url']),
-                'new_url' => trim($match['new_url'])
-            ];
-
-
-            $oldUrl = $data['old_url'];
-            $newUrl = $data['new_url'];
-
-            if (!$articleId || !$oldUrl || !$newUrl) {
-                $this->app->enqueueMessage(Text::_('COM_REDIRECTFIXER_MISSING_ARTICLE_DATA'), 'warning');
-                continue;
-            }
-
-            // Normalize old_url for comparison
-            $normalizedOldUrl = $this->normalizeURL($oldUrl);
-
-            // Use new_url as replacement while preserving original format (absolute/relative )
-            $replacementUrl = $newUrl;
-
-            foreach ($urls as $extractedUrl) {
-                $normalizedExtractedUrl = $this->normalizeURL($extractedUrl);
-
-                if ($this->isUrlMatch($normalizedExtractedUrl, $normalizedOldUrl)) {
-                    $table->introtext = str_replace($extractedUrl, $replacementUrl, $table->introtext);
-                    $table->fulltext = str_replace($extractedUrl, $replacementUrl, $table->fulltext);
-                    $urlMatched = true;
-                }
-            }
-        }
-
-        if (!$urlMatched) {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_MATCHED', $articleId), 'warning');
-            return false;
-        }
-
-        // Save updated article
-        if ($table->store()) {
-            $table->checkIn();
-            $updatedArticles[] = $articleId;
-            return true;
-        } else {
-            $this->app->enqueueMessage(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_UPDATE_FAILED', $articleId), 'error');
-            return false;
-        }
-    }
-
-    /**
-     * Checks if a URL matches a redirect URL (both normalized to absolute).
-     *
-     * @param    string    $urlPath        The normalized URL path to check
-     * @param    string    $redirectUrl    The normalized redirect URL to match against
-     * @return    bool    True if URLs match, false otherwise
-     */
-    protected function isUrlMatch($urlPath, $redirectUrl)
-    {
-        $result = (string) $urlPath === (string) $redirectUrl;
-        return $result;
-    }
-
+    
     /**
      * Extracts URLs from text based on malformed_urls setting.
      *
@@ -546,8 +231,9 @@ class RedirectfixerModel extends AdminModel
         preg_match_all('/href=(["\'])(.*?)\1/i', $text, $hrefMatches);
 
         if (!empty($hrefMatches[2])) {
-            // Get malformed URLs configuration
-            $malformedCheck = $this->params->get('malformed_urls', 'ignore');
+            // Get malformed URLs configuration parameter
+            $params = ComponentHelper::getParams('com_redirectfixer');
+            $malformedCheck = $params->get('malformed_urls', 'ignore');
 
             foreach ($hrefMatches[2] as $href) {
                 if (preg_match('/^#/', $href)) {
@@ -569,7 +255,265 @@ class RedirectfixerModel extends AdminModel
         }
 
         return $urls;
-    }    
+    }   
+    
+    /**
+     * Updates all articles with new URLs based on form data.
+     *
+     * @param    array    $jformData    The submitted form data containing articles to update
+     * @return   int                    Number of articles successfully updated
+     */
+
+    public function updateAllArticles($jformData)
+    {
+        $allMatches = [];
+        $updatedArticles = [];
+
+        // Extract and validate articles from form data
+        $articles = !empty($jformData['redirectfixer']['articles']) ? $jformData['redirectfixer']['articles'] : [];
+        if (empty($articles)) {
+            $this->setError(Text::_('COM_REDIRECTFIXER_NO_ARTICLES'));
+            return 0;
+        }
+
+        try {
+            $this->db->transactionStart();
+
+            // Process each article
+            foreach ($articles as $article) {
+                $this->processArticle($article, $allMatches, $updatedArticles);
+            }
+
+            $this->db->transactionCommit();
+        } catch (\Exception $e) {
+            $this->db->transactionRollback();
+            $this->setError(Text::sprintf('JLIB_APPLICATION_ERROR_SAVE_FAILED', $e->getMessage()));
+        }
+
+        $app = Factory::getApplication();
+        // Set state and return updated count
+        $app->setUserState('com_redirectfixer.articles', $allMatches);
+        
+        return count($updatedArticles);
+    } 
+
+    /**
+     * Updates a single article with new URLs based on form data and index.
+     *
+     * @param    array    $jformData    The submitted form data
+     * @param    int      $articleId    The ID of the article to update
+     * @return   int                    Number of articles successfully updated (0 or 1)
+     */
+    public function updateSingleArticle($jformData, $articleId)
+    {
+        $allMatches = [];
+        $updatedArticles = [];
+        $targetArticle = null;
+
+        // Find the article matching the given article ID
+        if (!empty($jformData['redirectfixer']['articles'])) {
+            foreach ($jformData['redirectfixer']['articles'] as $article) {
+                if (isset($article['id']) && (int) $article['id'] === (int) $articleId) {
+                    $targetArticle = $article;
+                    break;
+                }
+            }
+        }
+
+        if (!$targetArticle) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_NOT_FOUND', $articleId));
+            return 0;
+        }
+
+        try {
+            $this->db->transactionStart();
+
+            // Process the single matched article
+            $this->processArticle($targetArticle, $allMatches, $updatedArticles);
+
+            $this->db->transactionCommit();
+        } catch (\Exception $e) {
+            $this->db->transactionRollback();
+            $this->setError(Text::sprintf('JLIB_APPLICATION_ERROR_SAVE_FAILED', $e->getMessage()));
+        }
+
+        $app = Factory::getApplication();
+        // Set state and return updated count
+        $app->setUserState('com_redirectfixer.articles', $allMatches);
+
+        return count($updatedArticles);
+    }
+
+    /**
+     * Processes a single article, matching submitted URLs against content and updating it.
+     * 
+     * @param  array  $article          The article array containing 'id' and 'urls'
+     * @param  array  &$allMatches      Reference to array storing all filtered matches for state
+     * @param  array  &$updatedArticles Reference to array tracking successfully updated articles
+     * @return void
+     */
+    protected function processArticle($article, &$allMatches, &$updatedArticles)
+    {
+        // Validate article ID and URLs
+        if (empty($article['id']) || empty($article['urls']) || !is_array($article['urls'])) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_INVALID_ARTICLE_DATA', $article['id'] ?? 'unknown'));
+            return;
+        }
+
+        $articleId = (int) $article['id'];
+
+        // Prepare form URLs for filtering
+        $formUrls = [];
+        foreach ($article['urls'] as $url) {
+            if (!empty($url['old_url']) && !empty($url['new_url'])) {
+                $formUrls[$this->normalizeURL($url['old_url'])] = [
+                    'old_url' => $url['old_url'],
+                    'new_url' => $url['new_url']
+                ];
+            }
+        }
+
+        if (empty($formUrls)) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_NO_VALID_URLS', $articleId));
+            return;
+        }
+
+        // Scan article content for matching URLs
+        $matches = $this->scanArticle($articleId);
+
+        if (empty($matches)) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_FOUND_IN_ARTICLE', $articleId));
+            return;
+        }
+
+        // Filter matches to include only form-submitted URLs
+        $filteredMatches = [];
+        foreach ($matches as $match) {
+            $normalizedMatchUrl = $this->normalizeURL($match['old_url']);
+            if (isset($formUrls[$normalizedMatchUrl])) {
+                $filteredMatches[] = [
+                    'id'      => $match['id'],
+                    'title'   => $match['title'],
+                    'old_url' => $match['old_url'],
+                    'new_url' => $formUrls[$normalizedMatchUrl]['new_url']
+                ];
+            }
+        }
+
+        if (empty($filteredMatches)) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_MATCHED_FORM', $articleId));
+            return;
+        }
+
+        // Store matches for user state (passed by reference)
+        $allMatches = array_merge($allMatches, $filteredMatches);
+
+        // Update article content 
+        //$this->updateArticleContent($articleId, $filteredMatches, $updatedArticles);
+		if (!$this->updateArticleContent($articleId, $filteredMatches, $updatedArticles)) {
+          $this->setError(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_UPDATE_FAILED', $articleId));
+        }
+    }
+
+    /**
+     * Updates the content of a single article by replacing old URLs with new ones.
+     *
+     * @param    int        $articleId        The ID of the article to update
+     * @param    array    $matches         Array of matches containing id, old_url, new_url
+     * @param    array    &$updatedArticles Array to track updated article IDs
+     * @return    bool    True on success, false on failure
+     */
+    protected function updateArticleContent($articleId, $matches, &$updatedArticles)
+    {
+        // Load article content
+        $table = Table::getInstance('Content', 'Joomla\\CMS\\Table\\');
+
+        if (!$table->load($articleId)) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_LOAD_FAILED', $articleId));
+            return false;
+        }
+
+        // Don't modify articles which are being modified (checked out)
+        if ($table->isCheckedOut()) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_UPDATE_FAILED', $articleId));
+            return false;
+        }
+
+        // Merge intro and main article text
+        $content = $table->introtext . ' ' . $table->fulltext;
+
+        $urls = $this->extractURLsFromText($content);
+
+        if (empty($urls)) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_MATCHED', $articleId));
+            return false;
+        }
+
+        $urlMatched = false;
+
+        foreach ($matches as $match) {
+            // Validate article data
+            $data = [
+                'id' => (int) $match['id'],
+                'old_url' => trim($match['old_url']),
+                'new_url' => trim($match['new_url'])
+            ];
+
+            $oldUrl = $data['old_url'];
+            $newUrl = $data['new_url'];
+
+            if (!$articleId || !$oldUrl || !$newUrl) {
+                $this->setError(Text::_('COM_REDIRECTFIXER_MISSING_ARTICLE_DATA'));
+                continue;
+            }
+
+            // Normalize old_url for comparison
+            $normalizedOldUrl = $this->normalizeURL($oldUrl);
+
+            // Use new_url as replacement while preserving original format (absolute/relative )
+            $replacementUrl = $newUrl;
+
+            foreach ($urls as $extractedUrl) {
+                $normalizedExtractedUrl = $this->normalizeURL($extractedUrl);
+
+                if ($this->isUrlMatch($normalizedExtractedUrl, $normalizedOldUrl)) {
+                    $table->introtext = str_replace($extractedUrl, $replacementUrl, $table->introtext);
+                    $table->fulltext = str_replace($extractedUrl, $replacementUrl, $table->fulltext);
+                    $urlMatched = true;
+                }
+            }
+        }
+
+        if (!$urlMatched) {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_NO_URLS_MATCHED', $articleId));
+            return false;
+        }
+
+        // Save updated article
+        if ($table->store()) {
+            $table->checkIn();
+            $updatedArticles[] = $articleId;
+            return true;
+        } else {
+            $this->setError(Text::sprintf('COM_REDIRECTFIXER_ARTICLE_UPDATE_FAILED', $articleId));
+            return false;
+        }
+    
+    return true;
+    }
+
+    /**
+     * Checks if a URL matches a redirect URL (both normalized to absolute).
+     *
+     * @param    string    $urlPath        The normalized URL path to check
+     * @param    string    $redirectUrl    The normalized redirect URL to match against
+     * @return    bool    True if URLs match, false otherwise
+     */
+    protected function isUrlMatch($urlPath, $redirectUrl)
+    {
+        $result = (string) $urlPath === (string) $redirectUrl;
+        return $result;
+    }
 
     /**
      * Normalizes a URL to absolute format using the frontend root.
@@ -580,7 +524,7 @@ class RedirectfixerModel extends AdminModel
 
     protected function normalizeURL($url)
     {
-        $uri = new Uri($this->baseUri);
+        $uri = new Uri(Uri::root());
 
         if (strpos($url, $uri->toString()) === 0) {
             return $url; // URL is already absolute. Return early
@@ -593,9 +537,58 @@ class RedirectfixerModel extends AdminModel
         }
 
         return $uri->toString();
-    }   
+    }
 
-       /**
+    /**
+     * Normalizes and validates submitted article redirect data.
+     *
+     * @param   array  $jform  Submitted form data
+     *
+     * @return  array  Valid normalized articles
+     */
+    public function normalizeArticles(array $jform): array
+    {
+        $articles = $jform['redirectfixer']['articles'] ?? [];
+
+        if (empty($articles) || !is_array($articles)) {
+            return [];
+        }
+
+        $validArticles = [];
+
+        foreach ($articles as $article) {
+            if (
+                empty($article['id']) ||
+                empty($article['urls']) ||
+                !is_array($article['urls'])
+            ) {
+                continue;
+            }
+
+            $urls = array_values(
+                array_filter(
+                    $article['urls'],
+                    static function ($url) {
+                        return !empty($url['old_url'])
+                            && !empty($url['new_url']);
+                    }
+                )
+            );
+
+            if (empty($urls)) {
+                continue;
+            }
+
+            $validArticles[] = [
+                'id'   => (int) $article['id'],
+                'urls' => $urls,
+            ];
+        }
+
+        return $validArticles;
+    }    
+
+    /**
      * Method to get the form object.
      *
      * @param    array    $data      Data for the form (not typically used directly for binding here, but for custom defaults).
@@ -611,10 +604,10 @@ class RedirectfixerModel extends AdminModel
         ]);
 
         if (empty($form)) {
-            $this->app->enqueueMessage(Text::_('COM_REDIRECTFIXER_FORM_NOT_LOADED'), 'error');
+            $this->setError(Text::_('COM_REDIRECTFIXER_FORM_NOT_LOADED'));
             return false; 
         }
-
+        
         return $form;
     }
 
@@ -626,84 +619,18 @@ class RedirectfixerModel extends AdminModel
      */
     protected function loadFormData()
     {
+        $app = Factory::getApplication();
         // Get the raw items from the user state 
-        $items = $this->app->getUserState('com_redirectfixer.articles', []);
+        $items = $app->getUserState('com_redirectfixer.articles', []);
 
-        // Prepare form data structure as expected by the form XML
-        $formData = ['redirectfixer' => ['articles' => []]];
-        $groupedItems = [];
-
-        foreach ($items as $item) {
-            $id = $item['id'];
-            if (!isset($groupedItems[$id])) {
-                $groupedItems[$id] = [
-                    'id'    => $id,
-                    'title' => $item['title'],
-                    'urls'  => []
-                ];
-            }
-            $groupedItems[$id]['urls'][] = [
-                'old_url' => $item['old_url'],
-                'new_url' => $item['new_url']
-            ];
-        }
-
-        $formData['redirectfixer']['articles'] = array_values($groupedItems);
-
-        return $formData;
+        // Prepare form data structure as expected by the form XML 
+        $data = [
+          'redirectfixer' => [
+            'articles' => $items
+          ]
+        ];
+        
+        return $data;
+        
     }
-
-    /**
-     * Method to get a single record (or default data for a new record/state).
-     *
-     * @param   int  $pk  The id of the record to retrieve. Not applicable for this utility.
-     *
-     * @return  array  An assoc array with data to bind to the form and display in the view.
-     */
-    public function getItem($pk = null)
-    {
-        // Retrieve the raw array of affected articles from the user state
-        $items = $this->app->getUserState('com_redirectfixer.articles', []);
-
-        // Prepare form data structure as expected by the form XML
-        $formData = ['redirectfixer' => ['articles' => []]];
-        $groupedItems = [];
-
-        foreach ($items as $item) {
-            $id = $item['id'];
-            if (!isset($groupedItems[$id])) {
-                $groupedItems[$id] = [
-                    'id'    => $id,
-                    'title' => $item['title'],
-                    'urls'  => []
-                ];
-            }
-            $groupedItems[$id]['urls'][] = [
-                'old_url' => $item['old_url'],
-                'new_url' => $item['new_url']
-            ];
-        }
-
-        $formData['redirectfixer']['articles'] = array_values($groupedItems);
-
-        return $formData;
-    }
-    
-    /**
-     * Gets a NEW table object for the specified Table in the Administrator section of the component.
-     *
-     * @param   string  $type    The table name.
-     * @param   string  $prefix  The class prefix.
-     *
-     * @return  JTable  A JTable object
-     *
-     * @since   1.6
-     */   
-    public function getTable(
-        $type = "Content",
-        $prefix = "Joomla\\CMS\\Table\\",
-        $options = [],
-    ) {
-        return Table::getInstance($type, $prefix, $options);
-    }    
 }

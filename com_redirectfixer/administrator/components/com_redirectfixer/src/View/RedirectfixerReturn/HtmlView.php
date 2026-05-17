@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.2
+ * @version    1.3
  * @license    GNU General Public License version 2
  */
 
@@ -15,17 +15,10 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Factory;
 
 /**
- * View class for displaying and updating affected articles.
+ * Return view class for displaying and updating the affected articles.
  */
 class HtmlView extends BaseHtmlView
 {
-    /**
-     * Array of affected articles.
-     *
-     * @var array
-     */
-    protected $items = [];
-
     /**
      * Displays the view.
      *
@@ -34,14 +27,31 @@ class HtmlView extends BaseHtmlView
      */
     public function display($tpl = null)
     {
-        if (!Factory::getApplication()->getIdentity()->authorise('core.manage', 'com_redirectfixer')) {
-            Factory::getApplication()->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
-            return;
-        } 
+       $app = Factory::getApplication();
+       
+       if (!$app->getIdentity()->authorise('core.manage', 'com_redirectfixer')) {
+         $app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
+         return;
+         }
+      
+      //Get the form from the model
+      $this->form = $this->getModel()->getForm();
+                
+      //Get the items from the form
+      $data = $this->form->getData();
+      $this->items = $data->get('redirectfixer.articles', []);
+      
+      $this->groupedItems = [];
 
-        $this->items = Factory::getApplication()->getUserState('com_redirectfixer.articles', []);
-        $this->addToolbar();
-        parent::display($tpl);
+      // Group captured redirects by article ID
+      foreach ($this->items as $item) {
+          $this->groupedItems[$item['id']]['title'] = $item['title'];
+          $this->groupedItems[$item['id']]['matches'][] = $item;
+      }
+      
+      $this->addToolbar();
+      
+      parent::display($tpl);
     }
 
     /**
@@ -51,13 +61,14 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
+      $app = Factory::getApplication();
+      
         ToolbarHelper::title(Text::_('COM_REDIRECTFIXER_AFFECTED_ARTICLES'), 'link redirectfixer');
 
         ToolbarHelper::cancel('redirectfixer.cancel', 'JTOOLBAR_CANCEL');
-
-        $user = Factory::getApplication()->getIdentity() ?: Factory::getUser();
-        if ($user->authorise('core.admin', 'com_redirectfixer')) {
-            ToolbarHelper::preferences('com_redirectfixer', '500');
+        
+        if ($app->getIdentity()->authorise('core.admin', 'com_redirectfixer')) {
+          ToolbarHelper::preferences('com_redirectfixer', '550');
         }
     }
 }

@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="component" method="upgrade">
     <name>com_redirectfixer</name>
-    <version>1.2</version>
+    <version>1.3</version>
     <description>COM_REDIRECTFIXER_DESCRIPTION</description>
     <author>Brett</author>
     <creationDate>2025-03-15</creationDate>
+    <copyright>2025-2026</copyright>
     <license>GNU General Public License version 2</license>
-    <authorUrl>https://naftee.com</authorUrl>
     
     <namespace path="src">Naftee\Component\Redirectfixer</namespace>
     
+    <scriptfile>script.php</scriptfile>
+    
     <administration>
+    
         <menu>COM_REDIRECTFIXER</menu>
+        
         <files folder="administrator/components/com_redirectfixer">
             <filename>config.xml</filename>
             <folder>forms</folder>
@@ -19,16 +23,16 @@
             <folder>src</folder>
             <folder>tmpl</folder>
         </files>
+        
         <languages folder="administrator/components/com_redirectfixer/language">
            <language tag="en-GB">en-GB/com_redirectfixer.ini</language>
            <language tag="en-GB">en-GB/com_redirectfixer.sys.ini</language>
            <language tag="fr-FR">fr-FR/com_redirectfixer.ini</language>
            <language tag="fr-FR">fr-FR/com_redirectfixer.sys.ini</language>
         </languages>
+        
     </administration>
-    
-    <scriptfile>script.php</scriptfile>
-    
+  
     <updateservers>
         <server type="extension" name="Redirect Fixer Updates">https://raw.githubusercontent.com/brettvac/redirectfixer/refs/heads/main/update/updates.xml</server>
     </updateservers>
