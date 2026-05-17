@@ -14,23 +14,23 @@
             <item>Properly implemented data binding to the form inside the model.</item>
             <item>Properly implemented loading form data inside the view file.</item>
             <item>Properly implemented the article count number display using the appropriate language string.</item>
-            <item>Updated the fix method to reduce structural duplication and normalize data into <![CDATA[$validarticles]]>.</item>
+            <item><![CDATA[Updated the fix method to reduce structural duplication and normalize data into <code>$validarticles</code>.]]></item>
             <item>Removed throw statements to avoid early exit when a single article update fails.</item>
             <item>Used the model's setError method to accumulate error messages and allow the controller to enqueue them properly.</item>
         </fix>
 
         <change>
-            <item>Removed unused <![CDATA[getTable()]]> and <![CDATA[getItem()]]> methods from the model.</item>
-            <item>Implemented proper data structuring inside <![CDATA[loadFormData()]]> using user state data.</item>
+            <item><![CDATA[Removed unused <code>getTable()</code> and <code>getItem()</code> methods from the model.]]></item>
+            <item><![CDATA[Implemented proper data structuring inside <code>loadFormData()</code> using user state data.]]></item>
             <item>Updated the toolbar authorization retrieval to follow the modern Joomla! approach.</item>
             <item>Simplified the default view file by removing unnecessary constructors and global variables.</item>
             <item>Switched to a flat table structure allowing articles to appear multiple times.</item>
             <item>Moved normalized article logic from the controller into the model.</item>
-            <item>Separated processing logic into a protected method to remove duplication between <![CDATA[updateAllArticles()]]> and <![CDATA[updateSingleArticle()]]>.</item>
+            <item><![CDATA[Separated processing logic into a protected method to remove duplication between <code>updateAllArticles()</code> and <code>updateSingleArticle()</code>.]]></item>
             <item>Updated the controller statement used to fetch the model.</item>
             <item>Corrected configuration language strings to better describe malformed URL functionality.</item>
             <item>Removed unnecessary global variables from the model and constructor.</item>
-            <item>Replaced manual checked out validation with the <![CDATA[BaseDatabaseModel::isCheckedOut()]]> method.</item>
+            <item><![CDATA[Replaced manual checked out validation with the <code>BaseDatabaseModel::isCheckedOut()</code> method.]]></item>
             <item>Removed the application global variable from the model and limited user state handling to only required statements.</item>
         </change>
 
@@ -71,7 +71,7 @@
 
         <change>
             <item>Changed the broken query string functionality into an option to scan malformed URLs.</item>
-            <item>Updated the controller to extend <![CDATA[BaseController]]> and the model to extend <![CDATA[AdminModel]]>.</item>
+            <item><![CDATA[Updated the controller to extend <code>BaseController</code> and the model to extend <code>AdminModel</code>.]]></item>
             <item>Added language strings for the updated malformed URL scanning functionality.</item>
         </change>
 
