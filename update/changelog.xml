@@ -35,7 +35,63 @@
         </change>
 
         <note>
-            <item>This release focuses on structural cleanup, Joomla! modernisation, code optimization & bug fixes.</item>
+            <item>This release focuses on structural cleanup, Joomla! modernisation, code optimization &amp; bug fixes.</item>
+        </note>
+    </changelog>
+
+    <changelog>
+        <element>com_redirectfixer</element>
+        <type>component</type>
+        <version>1.2</version>
+
+        <fix>
+            <item>Fixed an incorrect language string that used the wrong number of arguments.</item>
+            <item>Removed the version attribute from the manifest extension tag to align with Joomla! standards.</item>
+        </fix>
+
+        <change>
+            <item>Added version information to the extension provider file.</item>
+            <item>Renamed the manifest file to avoid confusion with the form definition file.</item>
+        </change>
+
+        <note>
+            <item>This release improves manifest consistency and language string accuracy.</item>
+        </note>
+    </changelog>
+
+    <changelog>
+        <element>com_redirectfixer</element>
+        <type>component</type>
+        <version>1.1</version>
+
+        <fix>
+            <item>Fixed unused language strings and optimized existing strings.</item>
+            <item>Updated the update server definition to better follow Joomla! extension update practices.</item>
+        </fix>
+
+        <change>
+            <item>Changed the broken query string functionality into an option to scan malformed URLs.</item>
+            <item>Updated the controller to extend <![CDATA[BaseController]]> and the model to extend <![CDATA[AdminModel]]>.</item>
+            <item>Added language strings for the updated malformed URL scanning functionality.</item>
+        </change>
+
+        <note>
+            <item>This release modernizes the component structure and improves malformed URL detection.</item>
+        </note>
+    </changelog>
+
+    <changelog>
+        <element>com_redirectfixer</element>
+        <type>component</type>
+        <version>1.0</version>
+
+        <add>
+            <item>Initial release of the Redirect Fixer component.</item>
+            <item>Added functionality to scan and repair malformed internal redirect URLs in Joomla! articles.</item>
+        </add>
+
+        <note>
+            <item>First public release.</item>
         </note>
     </changelog>
 </changelogs>
