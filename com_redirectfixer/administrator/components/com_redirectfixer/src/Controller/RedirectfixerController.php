@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    Redirectfixer Component
- * @version    1.3
+ * @version    1.4
  * @license    GNU General Public License version 2
  */
 
@@ -68,7 +68,7 @@ class RedirectfixerController extends BaseController
         $model = $this->getModel('Redirectfixer');
         $articles = $model->getAffectedArticles();
 		
-		// Fetch and display model errors ---
+		    // Fetch and display model errors
         $errors = $model->getErrors();
         if (!empty($errors)) {
             foreach ($errors as $error) {
@@ -242,8 +242,20 @@ class RedirectfixerController extends BaseController
         if ($updated > 0) {
             $this->app->enqueueMessage(
                 Text::sprintf("COM_REDIRECTFIXER_UPDATED", $updated),
-				                'message'
+				        'message'
             );
+            
+           // If we only fixed a single article, re-scan and return to the return view to allow the user to continue fixing others
+           if ($updateSingleId > 0) {
+                $remainingArticles = $model->getAffectedArticles();
+                $this->app->setUserState("com_redirectfixer.articles", $remainingArticles);
+
+                $this->setRedirect(
+                    Route::_("index.php?option=com_redirectfixer&view=RedirectfixerReturn", false)
+                );
+                return;
+            }
+            
         } else {
             $this->app->enqueueMessage(
                 Text::_("COM_REDIRECTFIXER_NO_CHANGES_MADE"),

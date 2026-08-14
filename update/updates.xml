@@ -5,18 +5,18 @@
         <description>Updates for the Redirect Fixer Component</description>
         <element>com_redirectfixer</element>
         <type>component</type>
-        <version>1.3</version>
+        <version>1.4</version>
         <client>administrator</client>
 		
         <downloads>
-            <downloadurl type="full" format="zip">https://github.com/brettvac/redirectfixer/releases/download/1.3/com_redirectfixer.zip</downloadurl>
+            <downloadurl type="full" format="zip">https://github.com/brettvac/redirectfixer/releases/download/1.4/com_redirectfixer.zip</downloadurl>
         </downloads>
 		
         <infourl title="Redirect Fixer GitHub Repository">https://github.com/brettvac/redirectfixer</infourl>
 
         <changelogurl>https://raw.githubusercontent.com/brettvac/redirectfixer/refs/heads/main/update/changelog.xml</changelogurl>
         
-		    <targetplatform name="joomla" version="4\..*|5\..*|6\..*"/>
+        <targetplatform name="joomla" version="4\..*|5\..*|6\..*"/>
         <php_minimum>7.2.5</php_minimum>
     </update>
 </updates>

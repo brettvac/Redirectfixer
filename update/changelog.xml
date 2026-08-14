@@ -3,6 +3,16 @@
     <changelog>
         <element>com_redirectfixer</element>
         <type>component</type>
+        <version>1.4</version>
+
+        <add>
+            <item>Changed the function after fixing a single article to scan and go back to the return view to allow the user to continue fixing redirects.</item>
+        </add>
+    </changelog>
+    
+    <changelog>
+        <element>com_redirectfixer</element>
+        <type>component</type>
         <version>1.3</version>
 
         <fix>
