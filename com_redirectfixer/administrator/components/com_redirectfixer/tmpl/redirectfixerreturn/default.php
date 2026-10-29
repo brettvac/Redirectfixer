@@ -1,8 +1,9 @@
 <?php
 /**
- * @package    Redirectfixer Component
- * @version    1.4
- * @license    GNU General Public License version 2
+ * @package     Joomla.Administrator
+ * @subpackage  com_redirectfixer
+ * @version     1.5
+ * @license     GNU General Public License version 2
  */
 
 \defined('_JEXEC') or die;
@@ -26,6 +27,7 @@ foreach ($messages as $message) {
     }
 }
 
+// Count unique article IDs, not individual redirect matches, because multiple redirects can belong to the same article
 $articleCount = count($this->groupedItems);
 ?>
 

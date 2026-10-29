@@ -1,8 +1,9 @@
 <?php
 /**
- * @package    Redirectfixer Component
- * @version    1.4
- * @license    GNU General Public License version 2
+ * @package     Joomla.Administrator
+ * @subpackage  com_redirectfixer
+ * @version     1.5
+ * @license     GNU General Public License version 2
  */
 
 // No direct access

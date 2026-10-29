@@ -1,8 +1,9 @@
 <?php
 /**
- * @package    Redirectfixer Component
- * @version    1.4
- * @license    GNU General Public License version 2
+ * @package     Joomla.Administrator
+ * @subpackage  com_redirectfixer
+ * @version     1.5
+ * @license     GNU General Public License version 2
  */
 
 namespace Naftee\Component\Redirectfixer\Administrator\Controller;
@@ -14,6 +15,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Plugin\PluginHelper;
 
 /**
  * Controller for the Redirectfixer component.
@@ -294,7 +296,7 @@ class RedirectfixerController extends BaseController
      */
     protected function isRedirectPluginEnabled()
     {
-        return \Joomla\CMS\Plugin\PluginHelper::isEnabled("system", "redirect");
+        return PluginHelper::isEnabled("system", "redirect");
     }
 
     /**

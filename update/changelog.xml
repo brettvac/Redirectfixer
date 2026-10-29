@@ -3,18 +3,32 @@
     <changelog>
         <element>com_redirectfixer</element>
         <type>component</type>
+        <version>1.5</version>
+        <add>
+            <item>Added access.xml to define component permissions.</item>
+            <item>Added src/Extension to follow Joomla! extension structure conventions.</item>
+            <item>Added changelog to the component manifest.</item>
+            <item>Added the PluginHelper import to the main controller.</item>
+        </add>
+        <change>
+            <item>Updated top-level documentation blocks to follow Joomla! coding conventions.</item>
+        </change>
+        <fix>
+            <item>Removed unnecessary whitespace from the changelog to ensure proper parsing by Joomla!.</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>com_redirectfixer</element>
+        <type>component</type>
         <version>1.4</version>
-
         <add>
             <item>Changed the function after fixing a single article to scan and go back to the return view to allow the user to continue fixing redirects.</item>
         </add>
     </changelog>
-    
     <changelog>
         <element>com_redirectfixer</element>
         <type>component</type>
         <version>1.3</version>
-
         <fix>
             <item>Fixed the form structure to remove the extra nested form and support a flat structure where articles can be listed multiple times.</item>
             <item>Fixed incorrect language strings related to article counts and notifications.</item>
@@ -28,7 +42,6 @@
             <item>Removed throw statements to avoid early exit when a single article update fails.</item>
             <item>Used the model's setError method to accumulate error messages and allow the controller to enqueue them properly.</item>
         </fix>
-
         <change>
             <item><![CDATA[Removed unused <code>getTable()</code> and <code>getItem()</code> methods from the model.]]></item>
             <item><![CDATA[Implemented proper data structuring inside <code>loadFormData()</code> using user state data.]]></item>
@@ -43,63 +56,51 @@
             <item><![CDATA[Replaced manual checked out validation with the <code>BaseDatabaseModel::isCheckedOut()</code> method.]]></item>
             <item>Removed the application global variable from the model and limited user state handling to only required statements.</item>
         </change>
-
         <note>
           <item><![CDATA[This release focuses on structural cleanup, Joomla! modernisation, code optimization &amp; bug fixes.]]></item>
         </note>
     </changelog>
-
     <changelog>
         <element>com_redirectfixer</element>
         <type>component</type>
         <version>1.2</version>
-
         <fix>
             <item>Fixed an incorrect language string that used the wrong number of arguments.</item>
             <item>Removed the version attribute from the manifest extension tag to align with Joomla! standards.</item>
         </fix>
-
         <change>
             <item>Added version information to the extension provider file.</item>
             <item>Renamed the manifest file to avoid confusion with the form definition file.</item>
         </change>
-
         <note>
             <item>This release improves manifest consistency and language string accuracy.</item>
         </note>
     </changelog>
-
     <changelog>
         <element>com_redirectfixer</element>
         <type>component</type>
         <version>1.1</version>
-
         <fix>
             <item>Fixed unused language strings and optimized existing strings.</item>
             <item>Updated the update server definition to better follow Joomla! extension update practices.</item>
         </fix>
-
         <change>
             <item>Changed the broken query string functionality into an option to scan malformed URLs.</item>
             <item><![CDATA[Updated the controller to extend <code>BaseController</code> and the model to extend <code>AdminModel</code>.]]></item>
             <item>Added language strings for the updated malformed URL scanning functionality.</item>
         </change>
-
         <note>
             <item>This release modernizes the component structure and improves malformed URL detection.</item>
         </note>
     </changelog>
-
     <changelog>
         <element>com_redirectfixer</element>
         <type>component</type>
         <version>1.0</version>
-
         <add>
             <item>Initial release of the Redirect Fixer component.</item>
             <item>Added functionality to scan and repair malformed internal redirect URLs in Joomla! articles.</item>
         </add>
-
         <note>
             <item>First public release.</item>
         </note>

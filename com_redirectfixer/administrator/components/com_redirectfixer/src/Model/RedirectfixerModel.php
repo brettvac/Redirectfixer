@@ -1,8 +1,9 @@
 <?php
 /**
- * @package    Redirectfixer Component
- * @version    1.4
- * @license    GNU General Public License version 2
+ * @package     Joomla.Administrator
+ * @subpackage  com_redirectfixer
+ * @version     1.5
+ * @license     GNU General Public License version 2
  */
 
 namespace Naftee\Component\Redirectfixer\Administrator\Model;
@@ -418,10 +419,10 @@ class RedirectfixerModel extends FormModel
     /**
      * Updates the content of a single article by replacing old URLs with new ones.
      *
-     * @param    int        $articleId        The ID of the article to update
-     * @param    array    $matches         Array of matches containing id, old_url, new_url
-     * @param    array    &$updatedArticles Array to track updated article IDs
-     * @return    bool    True on success, false on failure
+     * @param    int     $articleId         The ID of the article to update
+     * @param    array   $matches           Array of matches containing id, old_url, new_url
+     * @param    array   &$updatedArticles  Array to track updated article IDs
+     * @return   bool    True on success, false on failure
      */
     protected function updateArticleContent($articleId, $matches, &$updatedArticles)
     {
